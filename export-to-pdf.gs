@@ -1,9 +1,9 @@
 /**
- * Drop-down menu
+ * Drop-down menu initialization
  */
 function onOpen() {
-  const ui = SpreadsheetApp.getUi();
-  ui.createMenu('Export PDF')
+  SpreadsheetApp.getUi()
+    .createMenu('Export PDF')
     .addItem('Run both exports', 'runBothExports')
     .addSeparator() 
     .addItem('Create Whisky_list', 'createWhiskyListPDF') 
@@ -22,14 +22,14 @@ function runBothExports() {
     ss.toast('Starting full export process...', 'Batch Process', 3);
     createWhiskyListPDF();
     exportWorkbook();
-    ui.alert('Success: Both PDFs have been created and saved to Drive.');
+    ui.alert('Success: Both PDFs have been created and updated in Drive.');
   } catch (e) {
     ui.alert('Batch process failed: ' + e.message);
   }
 }
 
 /**
- * Create Whisky_list
+ * Create Whisky_list PDF
  */
 function createWhiskyListPDF() {
   const ui = SpreadsheetApp.getUi();
@@ -40,87 +40,50 @@ function createWhiskyListPDF() {
     ui.alert('The "Whisky" sheet was not found. Please check the sheet name.');
     return;
   }
-  
-  // Force focus to this sheet so exportCurrentSheetAsPDF captures the correct target
+
   ss.setActiveSheet(sheet);
+  const targetCols = [2, 5, 6, 7, 9, 10]; // B, E, F, G, I, J
 
   try {
     ss.toast('Hiding columns...');
-    hideWhiskyColumns(sheet);
+    toggleColumns(sheet, targetCols, true);
     SpreadsheetApp.flush();
-    Utilities.sleep(1000);
 
     ss.toast('Creating PDF...');
-    exportCurrentSheetAsPDF(ss, sheet);
+    generatePdfExport(ss, 'Whisky_list.pdf', {
+      size: 'A5',
+      gid: sheet.getSheetId(),
+      printtitle: false,
+      sheetnames: false,
+      printnotes: false
+    });
 
-    ss.toast('"Whisky List.pdf" has been created.');
+    ss.toast('"Whisky_list.pdf" updated successfully.');
   } catch (e) {
     ui.alert('An error occurred: ' + e.message);
   } finally {
     ss.toast('Restoring columns...');
-    unhideWhiskyColumns(sheet);
+    toggleColumns(sheet, targetCols, false);
     SpreadsheetApp.flush();
   }
 }
 
 /**
- * Export current active sheet
- */ 
-function exportCurrentSheetAsPDF(ss, sheet) {
-  const url = ss.getUrl();
-  const pdfNameWL = "Whisky_list.pdf";
-
-  const exportUrl = url.replace(/edit$/, '') +
-    'export?' +
-    'format=pdf' +
-    '&size=A5' +
-    '&portrait=true' +
-    '&scale=2' + 
-    '&horizontal_alignment=CENTER' +
-    '&vertical_alignment=TOP' +
-    '&gridlines=true' +
-    '&printtitle=false' +
-    '&top_margin=0.25' +
-    '&bottom_margin=0.25' +
-    '&left_margin=0.25' +
-    '&right_margin=0.25' +
-    '&sheetnames=false' +
-    '&fzr=false' +
-    '&printnotes=false' +
-    '&gid=' + sheet.getSheetId();
-
-  saveBlobToDrive(exportUrl, pdfNameWL);
-}
-
-/**
- * Create Tasting_notes
+ * Create Tasting_notes PDF (Entire Workbook)
  */ 
 function exportWorkbook() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const url = ss.getUrl();
-  const pdfNameTN = "Tasting_notes.pdf";
-
-  const exportUrl = url.replace(/edit$/, '') +
-    'export?' +
-    'format=pdf' +
-    '&size=A4' +
-    '&portrait=true' +
-    '&scale=2' + 
-    '&horizontal_alignment=CENTER' +
-    '&vertical_alignment=TOP' +
-    '&gridlines=true' +
-    '&printtitle=true' +
-    '&top_margin=0.25' +
-    '&bottom_margin=0.25' +
-    '&left_margin=0.25' +
-    '&right_margin=0.25' +
-    '&sheetnames=true' +
-    '&pagenum=RIGHT' +
-    '&date=LEFT' +
-    '&fzr=false' +
-    '&printnotes=true';
-
-  saveBlobToDrive(exportUrl, pdfNameTN);
+  
+  ss.toast('Exporting Tasting Notes...');
+  generatePdfExport(ss, 'Tasting_notes.pdf', {
+    size: 'A4',
+    printtitle: true,
+    sheetnames: true,
+    pagenum: 'RIGHT',
+    date: 'LEFT',
+    printnotes: true
+  });
+  ss.toast('"Tasting_notes.pdf" updated successfully.');
 }
 
 /* =========================================================================
@@ -128,65 +91,96 @@ function exportWorkbook() {
    ========================================================================= */
 
 /**
- * Hides targeted columns on a specific sheet
- */ 
-function hideWhiskyColumns(sheet) {
-  const columnsToHide = ['B', 'E', 'F', 'G', 'I', 'J'];
-  columnsToHide.forEach(col => sheet.hideColumn(sheet.getRange(col + '1')));
+ * Shared PDF Generation Handler
+ */
+function generatePdfExport(ss, fileName, customParams = {}) {
+  const defaultParams = {
+    format: 'pdf',
+    portrait: 'true',
+    scale: '2',
+    horizontal_alignment: 'CENTER',
+    vertical_alignment: 'TOP',
+    gridlines: 'true',
+    top_margin: '0.25',
+    bottom_margin: '0.25',
+    left_margin: '0.25',
+    right_margin: '0.25',
+    fzr: 'false'
+  };
+
+  const finalParams = Object.assign({}, defaultParams, customParams);
+  
+  const queryString = Object.keys(finalParams)
+    .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(finalParams[key])}`)
+    .join('&');
+
+  const exportUrl = `${ss.getUrl().replace(/edit$/, '')}export?${queryString}`;
+  saveBlobToDriveInPlace(exportUrl, fileName);
 }
 
 /**
- * Unhides targeted columns on a specific sheet
+ * Toggles column visibility by numerical index
+ * @param {Sheet} sheet 
+ * @param {Array<number>} columns Column indices (1-based)
+ * @param {boolean} hide True to hide, False to show
  */ 
-function unhideWhiskyColumns(sheet) {
-  const columnsToUnhide = ['B', 'E', 'F', 'G', 'I', 'J'];
-
-  columnsToUnhide.forEach(columnRange => {
+function toggleColumns(sheet, columns, hide) {
+  columns.forEach(col => {
     try {
-      const range = sheet.getRange(`${columnRange}:${columnRange}`);
-      sheet.showColumns(range.getColumn(), range.getNumColumns());
+      if (hide) {
+        sheet.hideColumns(col);
+      } else {
+        sheet.showColumns(col);
+      }
     } catch (e) {
-      Logger.log(`Error unhiding column ${columnRange}: ${e.toString()}`);
+      Logger.log(`Error toggling column ${col}: ${e.toString()}`);
     }
   });
 }
 
 /**
- * Fetches the export URL and overwrites the existing file on Google Drive
- * without moving the old one to the trash.
+ * Fetches PDF export and overwrites existing file content in-place via Drive API PATCH.
+ * Preserves the file ID, permissions, and fixed URL.
  */
-function saveBlobToDrive(exportUrl, fileName) {
-  const blob = UrlFetchApp.fetch(exportUrl, {
-    headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
-  }).getBlob().setName(fileName); 
+function saveBlobToDriveInPlace(exportUrl, fileName) {
+  const oauthToken = ScriptApp.getOAuthToken();
 
+  // 1. Fetch the generated PDF blob
+  const response = UrlFetchApp.fetch(exportUrl, {
+    headers: { Authorization: 'Bearer ' + oauthToken },
+    muteHttpExceptions: true
+  });
+
+  if (response.getResponseCode() !== 200) {
+    throw new Error(`Failed to generate PDF export (HTTP ${response.getResponseCode()})`);
+  }
+
+  const blob = response.getBlob().setName(fileName);
   const existingFiles = DriveApp.getFilesByName(fileName);
 
   if (existingFiles.hasNext()) {
     const file = existingFiles.next();
-    
-    // DriveApp doesn't have a direct native "file.setBlob()" method, 
-    // so we use the Drive API via a PATCH request to overwrite the content.
     const fileId = file.getId();
+
+    // 2. Overwrite file content via REST API PATCH request
     const updateUrl = `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`;
     
     UrlFetchApp.fetch(updateUrl, {
       method: 'PATCH',
-      headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
+      headers: { Authorization: 'Bearer ' + oauthToken },
       payload: blob.getBytes(),
       contentType: 'application/pdf'
     });
-    
-    Logger.log(`Overwrote existing file: ${fileName} (ID: ${fileId})`);
-    
-    // If there happen to be any accidental duplicate files with the same name, 
-    // this cleans them up so you don't accumulate duplicates.
+
+    Logger.log(`Overwrote file content in-place (URL maintained): ${file.getUrl()}`);
+
+    // Clean up extra duplicate files with the exact same name if any exist
     while (existingFiles.hasNext()) {
       existingFiles.next().setTrashed(true);
     }
   } else {
-    // If the file doesn't exist yet, create it fresh
-    DriveApp.createFile(blob);
-    Logger.log(`Created new file: ${fileName}`);
+    // 3. Create a new file if it doesn't exist yet
+    const newFile = DriveApp.createFile(blob);
+    Logger.log(`Created new file: ${fileName} (${newFile.getUrl()})`);
   }
 }
