@@ -1,4 +1,4 @@
-# run with `python3 whisky_convert.py tasting_notes.txt
+# run with `python3 whisky_convert.py tasting_notes.txt`
 import sys
 
 def parse_whisky_file(file_path):
