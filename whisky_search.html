@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Whisky Multi-Search</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #121212;
+            color: #ffffff;
+            padding: 20px 0;
+        }
+        .container {
+            background: #1e1e1e;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            width: 440px;
+        }
+        h2 { text-align: center; margin-top: 0; }
+        .input-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+        input[type="text"] {
+            padding: 12px 16px;
+            font-size: 16px;
+            flex-grow: 1;
+            border: 1px solid #444;
+            border-radius: 6px;
+            background: #2a2a2a;
+            color: #fff;
+        }
+        button {
+            padding: 12px 18px;
+            font-size: 15px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-search { background: #d97706; color: white; }
+        .btn-search:hover { background: #b45309; }
+        
+        .btn-new { background: #2563eb; color: white; width: 100%; }
+        .btn-new:hover { background: #1d4ed8; }
+
+        .divider { margin: 20px 0; border-top: 1px solid #333; }
+        
+        .site-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 450px;
+            overflow-y: auto;
+            background: #161616;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #333;
+        }
+        .site-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .site-item input { cursor: pointer; }
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        .controls span { color: #3b82f6; cursor: pointer; }
+        .controls span:hover { text-decoration: underline; }
+
+        .warning {
+            margin-top: 15px;
+            font-size: 12px;
+            color: #f59e0b;
+            background: #2b2111;
+            padding: 8px;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Whisky Multi-Search</h2>
+    
+    <form id="searchForm">
+        <div class="input-group">
+            <input type="text" id="query" placeholder="e.g. Uigeadail" autofocus>
+            <button type="submit" class="btn-search">Search</button>
+        </div>
+    </form>
+
+    <button type="button" id="btnNewArrivals" class="btn-new">Open New Arrivals</button>
+
+    <div class="divider"></div>
+
+    <div class="controls">
+        <strong>Select Stores:</strong>
+        <div>
+            <span id="selectAll">All</span> | <span id="selectNone">None</span>
+        </div>
+    </div>
+
+    <div class="site-list" id="siteList"></div>
+
+    <div class="warning">
+        ⚠️ <strong>Note:</strong> Preferences auto-save to this browser. Make sure browser pop-ups are allowed!
+    </div>
+</div>
+
+<script>
+    // List of configured stores
+    const STORES = [
+        { id: "deinwhisky", name: "DeinWhisky.de", search: "https://www.deinwhisky.de/search?sSearch=", newUrl: "https://www.deinwhisky.de/neues/" },
+        { id: "whiskysite", name: "WhiskySite.nl", search: "https://www.whiskysite.nl/en/search/{q}/", newUrl: "https://www.whiskysite.nl/en/collection/?sort=newest" },
+        { id: "passion", name: "Passion For Whisky", search: "https://www.passionforwhisky.com/en/search?controller=search&s=", newUrl: "https://www.passionforwhisky.com/en/new-products/new-arrivals-whisky/" },
+        { id: "whiskybase", name: "Whiskybase Shop", search: "https://shop.whiskybase.com/us/search/{q}/", newUrl: "https://shop.whiskybase.com/us/new/" },
+        { id: "dramtime", name: "Dramtime", search: "https://www.dramtime.eu/?s={q}&post_type=product&dgwt_wcas=1&lang=en", newUrl: "https://www.dramtime.eu/shop/?orderby=date" },
+        { id: "delia", name: "Delia Whisky", search: "https://deliawhisky.de/en/search?q={q}&options%5Bprefix%5D=last", newUrl: "https://deliawhisky.de/en-en/collections/neuheiten-whisky" },
+        { id: "maniac", name: "Whisky Maniac", search: "https://www.whisky-maniac.de/search?q=", newUrl: "https://www.whisky-maniac.de/c/new-in" },
+        { id: "whic", name: "Whic.de", search: "https://whic.de/search?q=", newUrl: "https://whic.de/neu" },
+        { id: "oldpipe", name: "The Old Pipe", search: "https://www.theoldpipe.com/en/search/{q}/", newUrl: "https://www.theoldpipe.com/en/collection/?sort=newest" },
+        { id: "vanzuylen", name: "Whisky van Zuylen", search: "https://www.whiskyvanzuylen.nl/zoeken?type=&q=", newUrl: "https://www.whiskyvanzuylen.nl" },
+        { id: "svetnapojov", name: "Svet Nápojov", search: "https://www.svetnapojov.sk/vyhladavanie?search=", newUrl: "https://www.svetnapojov.sk/whisky-c21?f=types%5B%5D%3Dnew" },
+        { id: "alkohol", name: "Alkohol.cz", search: "https://www.alkohol.cz/produkty/uigedail/vyhledavani/?q=", newUrl: "https://www.alkohol.cz" }
+    ];
+
+    // Load saved preferences or enable all by default
+    const savedPrefs = JSON.parse(localStorage.getItem('whisky_store_prefs')) || {};
+
+    const container = document.getElementById('siteList');
+    STORES.forEach(store => {
+        const isChecked = savedPrefs[store.id] !== undefined ? savedPrefs[store.id] : true;
+        
+        const label = document.createElement('label');
+        label.className = 'site-item';
+        label.innerHTML = `
+            <input type="checkbox" data-id="${store.id}" ${isChecked ? 'checked' : ''}>
+            ${store.name}
+        `;
+        container.appendChild(label);
+    });
+
+    // Save choices on checkbox change
+    container.addEventListener('change', () => {
+        const prefs = {};
+        document.querySelectorAll('#siteList input').forEach(cb => {
+            prefs[cb.dataset.id] = cb.checked;
+        });
+        localStorage.setItem('whisky_store_prefs', JSON.stringify(prefs));
+    });
+
+    // Select All / Select None controls
+    document.getElementById('selectAll').onclick = () => setAllCheckboxes(true);
+    document.getElementById('selectNone').onclick = () => setAllCheckboxes(false);
+
+    function setAllCheckboxes(state) {
+        document.querySelectorAll('#siteList input').forEach(cb => cb.checked = state);
+        container.dispatchEvent(new Event('change'));
+    }
+
+    // Get active stores
+    function getSelectedStores() {
+        const checkedIds = Array.from(document.querySelectorAll('#siteList input:checked')).map(cb => cb.dataset.id);
+        return STORES.filter(s => checkedIds.includes(s.id));
+    }
+
+    // Open tabs
+    function openUrls(urls) {
+        urls.forEach(url => window.open(url, '_blank'));
+    }
+
+    // Search submit
+    document.getElementById('searchForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const raw = document.getElementById('query').value.trim();
+        if (!raw) return;
+        
+        const query = encodeURIComponent(raw);
+        const selected = getSelectedStores();
+
+        const urls = selected.map(s => {
+            return s.search.includes('{q}') ? s.search.replace('{q}', query) : s.search + query;
+        });
+
+        openUrls(urls);
+    });
+
+    // New Arrivals click
+    document.getElementById('btnNewArrivals').addEventListener('click', () => {
+        const selected = getSelectedStores();
+        const urls = selected.map(s => s.newUrl);
+        openUrls(urls);
+    });
+</script>
+
+</body>
+</html>
