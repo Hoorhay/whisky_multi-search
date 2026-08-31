@@ -21,17 +21,18 @@
             border-radius: 12px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
             width: 440px;
+            box-sizing: border-box;
         }
-        h2 { text-align: center; margin-top: 0; }
+        h2 { text-align: center; margin: 0 0 15px 0; font-size: 22px; }
         .input-group {
             display: flex;
             gap: 10px;
             justify-content: center;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
         }
         input[type="text"] {
-            padding: 12px 16px;
-            font-size: 16px;
+            padding: 10px 14px;
+            font-size: 15px;
             flex-grow: 1;
             border: 1px solid #444;
             border-radius: 6px;
@@ -39,29 +40,41 @@
             color: #fff;
         }
         button {
-            padding: 12px 18px;
-            font-size: 15px;
+            padding: 10px 16px;
+            font-size: 14px;
             border: none;
             border-radius: 6px;
             cursor: pointer;
             font-weight: bold;
+            transition: opacity 0.2s;
         }
-        .btn-search { background: #d97706; color: white; }
-        .btn-search:hover { background: #b45309; }
+        button:hover { opacity: 0.9; }
         
-        .btn-new { background: #2563eb; color: white; width: 100%; }
-        .btn-new:hover { background: #1d4ed8; }
+        .btn-search { background: #d97706; color: white; }
+        
+        .button-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 5px;
+        }
+        .btn-action {
+            flex: 1;
+            padding: 10px 8px;
+            font-size: 13px;
+        }
+        .btn-new { background: #2563eb; color: white; }
+        .btn-sale { background: #059669; color: white; }
 
-        .divider { margin: 20px 0; border-top: 1px solid #333; }
+        .divider { margin: 15px 0; border-top: 1px solid #333; }
         
         .site-list {
             display: flex;
             flex-direction: column;
             gap: 8px;
-            max-height: 500px;
+            max-height: 1000px;
             overflow-y: auto;
             background: #161616;
-            padding: 12px;
+            padding: 10px;
             border-radius: 6px;
             border: 1px solid #333;
         }
@@ -69,7 +82,7 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            font-size: 14px;
+            font-size: 13px;
             cursor: pointer;
         }
         .site-item input { cursor: pointer; }
@@ -77,18 +90,19 @@
             display: flex;
             justify-content: space-between;
             margin-bottom: 8px;
-            font-size: 13px;
+            font-size: 12px;
         }
         .controls span { color: #3b82f6; cursor: pointer; }
         .controls span:hover { text-decoration: underline; }
 
         .warning {
-            margin-top: 15px;
-            font-size: 12px;
+            margin-top: 12px;
+            font-size: 11px;
             color: #f59e0b;
             background: #2b2111;
             padding: 8px;
             border-radius: 6px;
+            text-align: center;
         }
     </style>
 </head>
@@ -104,7 +118,10 @@
         </div>
     </form>
 
-    <button type="button" id="btnNewArrivals" class="btn-new">Open New Arrivals</button>
+    <div class="button-row">
+        <button type="button" id="btnNewArrivals" class="btn-action btn-new">New Arrivals</button>
+        <button type="button" id="btnSales" class="btn-action btn-sale">Sales & Deals</button>
+    </div>
 
     <div class="divider"></div>
 
@@ -118,24 +135,24 @@
     <div class="site-list" id="siteList"></div>
 
     <div class="warning">
-        ⚠️ <strong>Note:</strong> Preferences auto-save to this browser. Make sure browser pop-ups are allowed!
+        ⚠️ Choices auto-save to browser. Make sure browser pop-ups are allowed!
     </div>
 </div>
 
 <script>
-    // List of configured stores
+    // Configured stores with search, new arrival, and sale URLs
     const STORES = [
-        { id: "deinwhisky", name: "DeinWhisky.de", search: "https://www.deinwhisky.de/search?sSearch=", newUrl: "https://www.deinwhisky.de/neues/" },
-        { id: "whiskysite", name: "WhiskySite.nl", search: "https://www.whiskysite.nl/en/search/{q}/", newUrl: "https://www.whiskysite.nl/en/collection/?sort=newest" },
-        { id: "passion", name: "Passion For Whisky", search: "https://www.passionforwhisky.com/en/search?controller=search&s=", newUrl: "https://www.passionforwhisky.com/en/new-products/new-arrivals-whisky/" },
-        { id: "whiskybase", name: "Whiskybase Shop", search: "https://shop.whiskybase.com/us/search/{q}/", newUrl: "https://shop.whiskybase.com/us/new/" },
-        { id: "dramtime", name: "Dramtime", search: "https://www.dramtime.eu/?s={q}&post_type=product&dgwt_wcas=1&lang=en", newUrl: "https://www.dramtime.eu/shop/?orderby=date" },
-        { id: "delia", name: "Delia Whisky", search: "https://deliawhisky.de/en/search?q={q}&options%5Bprefix%5D=last", newUrl: "https://deliawhisky.de/en-en/collections/neuheiten-whisky" },
-        { id: "maniac", name: "Whisky Maniac", search: "https://www.whisky-maniac.de/search?q=", newUrl: "https://www.whisky-maniac.de/c/new-in" },
-        { id: "whic", name: "Whic.de", search: "https://whic.de/search?q=", newUrl: "https://whic.de/neu" },
-        { id: "oldpipe", name: "The Old Pipe", search: "https://www.theoldpipe.com/en/search/{q}/", newUrl: "https://www.theoldpipe.com/en/collection/?sort=newest" },
-        { id: "vanzuylen", name: "Whisky van Zuylen", search: "https://www.whiskyvanzuylen.nl/zoeken?type=&q=", newUrl: "https://www.whiskyvanzuylen.nl" },
-        { id: "svetnapojov", name: "Svet Nápojov", search: "https://www.svetnapojov.sk/vyhladavanie?search=", newUrl: "https://www.svetnapojov.sk/whisky-c21?f=types%5B%5D%3Dnew" },
+        { id: "deinwhisky", name: "DeinWhisky.de", search: "https://www.deinwhisky.de/search?sSearch=", newUrl: "https://www.deinwhisky.de/neues/", saleUrl: "https://www.deinwhisky.de/angebote/" },
+        { id: "whiskysite", name: "WhiskySite.nl", search: "https://www.whiskysite.nl/en/search/{q}/", newUrl: "https://www.whiskysite.nl/en/collection/?sort=newest", saleUrl: "https://www.whiskysite.nl/en/offers/" },
+        { id: "passion", name: "Passion For Whisky", search: "https://www.passionforwhisky.com/en/search?controller=search&s=", newUrl: "https://www.passionforwhisky.com/en/new-products/new-arrivals-whisky/", saleUrl: "https://www.passionforwhisky.com/en/sale/whisky-sales/" },
+        { id: "whiskybase", name: "Whiskybase Shop [no sales link]", search: "https://shop.whiskybase.com/us/search/{q}/", newUrl: "https://shop.whiskybase.com/us/new/", saleUrl: "https://shop.whiskybase.com/us/" },
+        { id: "dramtime", name: "Dramtime", search: "https://www.dramtime.eu/?s={q}&post_type=product&dgwt_wcas=1&lang=en", newUrl: "https://www.dramtime.eu/shop/?orderby=date", saleUrl: "https://www.dramtime.eu/shop/?on_sale=uitverkoop" },
+        { id: "delia", name: "Delia Whisky", search: "https://deliawhisky.de/en/search?q={q}&options%5Bprefix%5D=last", newUrl: "https://deliawhisky.de/en-en/collections/neuheiten-whisky", saleUrl: "https://deliawhisky.de/en-en/collections/angebote" },
+        { id: "maniac", name: "Whisky Maniac", search: "https://www.whisky-maniac.de/search?q=", newUrl: "https://www.whisky-maniac.de/c/new-in", saleUrl: "https://www.whisky-maniac.de" },
+        { id: "whic", name: "Whic.de [no sales link]", search: "https://whic.de/search?q=", newUrl: "https://whic.de/neu", saleUrl: "https://whic.de" },
+        { id: "oldpipe", name: "The Old Pipe", search: "https://www.theoldpipe.com/en/search/{q}/", newUrl: "https://www.theoldpipe.com/en/collection/?sort=newest", saleUrl: "https://www.theoldpipe.com/en/special-offers/" },
+        { id: "vanzuylen", name: "Whisky van Zuylen [no new or sales link]", search: "https://www.whiskyvanzuylen.nl/zoeken?type=&q=", newUrl: "https://www.whiskyvanzuylen.nl", saleUrl: "https://www.whiskyvanzuylen.nl" },
+        { id: "svetnapojov", name: "Svet Nápojov", search: "https://www.svetnapojov.sk/vyhladavanie?search=", newUrl: "https://www.svetnapojov.sk/whisky-c21?f=types%5B%5D%3Dnew", saleUrl: "https://www.svetnapojov.sk/whisky-c21?f=types%5B%5D%3Daction" },
     ];
 
     // Load saved preferences or enable all by default
@@ -172,18 +189,18 @@
         container.dispatchEvent(new Event('change'));
     }
 
-    // Get active stores
+    // Get active stores based on checked boxes
     function getSelectedStores() {
         const checkedIds = Array.from(document.querySelectorAll('#siteList input:checked')).map(cb => cb.dataset.id);
         return STORES.filter(s => checkedIds.includes(s.id));
     }
 
-    // Open tabs
+    // Open tabs synchronously
     function openUrls(urls) {
         urls.forEach(url => window.open(url, '_blank'));
     }
 
-    // Search submit
+    // Search submit handler
     document.getElementById('searchForm').addEventListener('submit', (e) => {
         e.preventDefault();
         const raw = document.getElementById('query').value.trim();
@@ -199,10 +216,17 @@
         openUrls(urls);
     });
 
-    // New Arrivals click
+    // New Arrivals click handler
     document.getElementById('btnNewArrivals').addEventListener('click', () => {
         const selected = getSelectedStores();
         const urls = selected.map(s => s.newUrl);
+        openUrls(urls);
+    });
+
+    // Sales click handler
+    document.getElementById('btnSales').addEventListener('click', () => {
+        const selected = getSelectedStores();
+        const urls = selected.map(s => s.saleUrl);
         openUrls(urls);
     });
 </script>
