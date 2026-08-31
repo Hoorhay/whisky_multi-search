@@ -20,13 +20,13 @@ def main():
     encoded_query = urllib.parse.quote(raw_query)
 
     urls = [
-        f"https://www.svetnapojov.sk/vyhladavanie?search={encoded_query}",
-        f"https://www.alkohol.cz/produkty/uigedail/vyhledavani/?q={encoded_query}",
         f"https://www.deinwhisky.de/search?sSearch={encoded_query}",
-        f"https://shop.whiskybase.com/us/search/{encoded_query}/",
         f"https://www.whiskysite.nl/en/search/{encoded_query}/",
         f"https://www.passionforwhisky.com/en/search?controller=search&s={encoded_query}",
+        f"https://shop.whiskybase.com/us/search/{encoded_query}/",
         f"https://www.dramtime.eu/?s={encoded_query}&post_type=product&dgwt_wcas=1&lang=en",
+        f"https://www.svetnapojov.sk/vyhladavanie?search={encoded_query}",
+        f"https://www.alkohol.cz/produkty/uigedail/vyhledavani/?q={encoded_query}",
     ]
 
     for url in urls:
