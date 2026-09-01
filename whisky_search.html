@@ -175,6 +175,10 @@
             transform: translateY(0);
         }
 
+        .bracket-text {
+            color: #f59e0b; /* Change to your preferred shade of red */
+        }
+
         .btn-search {
             background: var(--accent-amber);
             color: #000;
@@ -377,16 +381,19 @@
 
     const container = document.getElementById('siteList');
     STORES.forEach(store => {
-        const isChecked = savedPrefs[store.id] !== undefined ? savedPrefs[store.id] : true;
+    const isChecked = savedPrefs[store.id] !== undefined ? savedPrefs[store.id] : true;
 
-        const label = document.createElement('label');
-        label.className = 'site-item';
-        label.innerHTML = `
-            <input type="checkbox" data-id="${store.id}" ${isChecked ? 'checked' : ''}>
-            <span>${store.name}</span>
-        `;
-        container.appendChild(label);
-    });
+    // Wraps any content inside [...] with a styled span
+    const formattedName = store.name.replace(/(\[.*?\])/g, '<span class="bracket-text">$1</span>');
+
+    const label = document.createElement('label');
+    label.className = 'site-item';
+    label.innerHTML = `
+        <input type="checkbox" data-id="${store.id}" ${isChecked ? 'checked' : ''}>
+        <span>${formattedName}</span>
+    `;
+    container.appendChild(label);
+});
 
     container.addEventListener('change', () => {
         const prefs = {};
