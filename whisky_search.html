@@ -62,23 +62,95 @@
             display: flex;
             gap: 10px;
             margin-bottom: 1rem;
+            position: relative;
+        }
+
+        .input-wrapper {
+            position: relative;
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
         }
 
         input[type="text"] {
-            padding: 12px 16px;
+            width: 100%;
+            padding: 12px 36px 12px 16px;
             font-size: 0.95rem;
-            flex-grow: 1;
             border: 1px solid var(--card-border);
             border-radius: 10px;
             background: var(--input-bg);
             color: #fff;
             outline: none;
             transition: all 0.2s ease;
+            box-sizing: border-box;
         }
 
         input[type="text"]:focus {
             border-color: var(--accent-amber);
             box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+        }
+
+        .history-btn {
+            position: absolute;
+            right: 8px;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 4px 6px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+        }
+
+        .history-btn:hover {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .history-dropdown {
+            position: absolute;
+            top: 105%;
+            left: 0;
+            right: 0;
+            background: #1e293b;
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            z-index: 100;
+            display: none;
+            overflow: hidden;
+        }
+
+        .history-dropdown.show {
+            display: block;
+        }
+
+        .history-item {
+            padding: 10px 14px;
+            font-size: 0.875rem;
+            cursor: pointer;
+            color: var(--text-main);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .history-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .history-clear {
+            padding: 8px 14px;
+            font-size: 0.75rem;
+            color: #ef4444;
+            border-top: 1px solid var(--card-border);
+            cursor: pointer;
+            text-align: right;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .history-clear:hover {
+            background: rgba(239, 68, 68, 0.1);
         }
 
         button {
@@ -164,7 +236,7 @@
             display: flex;
             flex-direction: column;
             gap: 3px;
-            max-height: 1000px;
+            max-height: 700px;
             overflow-y: auto;
             background: var(--input-bg);
             padding: 8px;
@@ -172,7 +244,6 @@
             border: 1px solid var(--card-border);
         }
 
-        /* Custom Scrollbar */
         .site-list::-webkit-scrollbar {
             width: 6px;
         }
@@ -252,7 +323,14 @@
 
     <form id="searchForm">
         <div class="input-group">
-            <input type="text" id="query" placeholder="e.g. Uigeadail" autofocus>
+            <div class="input-wrapper">
+                <input type="text" id="query" placeholder="e.g. Uigeadail" autofocus autocomplete="off">
+                <button type="button" class="history-btn" id="historyToggle">▼</button>
+                <div class="history-dropdown" id="historyDropdown">
+                    <div id="historyItems"></div>
+                    <div class="history-clear" id="clearHistory">Clear History</div>
+                </div>
+            </div>
             <button type="submit" class="btn-search">Search</button>
         </div>
     </form>
@@ -279,7 +357,6 @@
 </div>
 
 <script>
-    // Configured stores with search, new arrival, and sale URLs
     const STORES = [
         { id: "deinwhisky", name: "DeinWhisky.de", search: "https://www.deinwhisky.de/search?sSearch=", newUrl: "https://www.deinwhisky.de/neues/", saleUrl: "https://www.deinwhisky.de/angebote/" },
         { id: "whiskysite", name: "WhiskySite.nl", search: "https://www.whiskysite.nl/en/search/{q}/", newUrl: "https://www.whiskysite.nl/en/collection/?sort=newest", saleUrl: "https://www.whiskysite.nl/en/offers/" },
@@ -291,11 +368,11 @@
         { id: "whic", name: "Whic.de [no sales link]", search: "https://whic.de/search?q=", newUrl: "https://whic.de/neu", saleUrl: "https://whic.de" },
         { id: "oldpipe", name: "The Old Pipe", search: "https://www.theoldpipe.com/en/search/{q}/", newUrl: "https://www.theoldpipe.com/en/collection/?sort=newest", saleUrl: "https://www.theoldpipe.com/en/special-offers/" },
         { id: "vanzuylen", name: "Whisky van Zuylen [no new or sales link]", search: "https://www.whiskyvanzuylen.nl/zoeken?type=&q=", newUrl: "https://www.whiskyvanzuylen.nl", saleUrl: "https://www.whiskyvanzuylen.nl" },
-	    { id: "drankdozijn", name: "Drankdozijn",  search: "https://drankdozijn.de/zoeken?zoekterm=", newUrl: "https://drankdozijn.de/nieuw/whisky?orderBy=new-date", saleUrl: "https://drankdozijn.de/aanbiedingen/whisky" },
+        { id: "drankdozijn", name: "Drankdozijn",  search: "https://drankdozijn.de/zoeken?zoekterm=", newUrl: "https://drankdozijn.de/nieuw/whisky?orderBy=new-date", saleUrl: "https://drankdozijn.de/aanbiedingen/whisky" },
         { id: "svetnapojov", name: "Svet Nápojov", search: "https://www.svetnapojov.sk/vyhladavanie?search=", newUrl: "https://www.svetnapojov.sk/whisky-c21?f=types%5B%5D%3Dnew", saleUrl: "https://www.svetnapojov.sk/whisky-c21?f=types%5B%5D%3Daction" },
     ];
 
-    // Load saved preferences or enable all by default
+    // Load saved store preferences
     const savedPrefs = JSON.parse(localStorage.getItem('whisky_store_prefs')) || {};
 
     const container = document.getElementById('siteList');
@@ -311,7 +388,6 @@
         container.appendChild(label);
     });
 
-    // Save choices on checkbox change
     container.addEventListener('change', () => {
         const prefs = {};
         document.querySelectorAll('#siteList input').forEach(cb => {
@@ -320,7 +396,6 @@
         localStorage.setItem('whisky_store_prefs', JSON.stringify(prefs));
     });
 
-    // Select All / Select None controls
     document.getElementById('selectAll').onclick = () => setAllCheckboxes(true);
     document.getElementById('selectNone').onclick = () => setAllCheckboxes(false);
 
@@ -329,22 +404,81 @@
         container.dispatchEvent(new Event('change'));
     }
 
-    // Get active stores based on checked boxes
     function getSelectedStores() {
         const checkedIds = Array.from(document.querySelectorAll('#siteList input:checked')).map(cb => cb.dataset.id);
         return STORES.filter(s => checkedIds.includes(s.id));
     }
 
-    // Open tabs synchronously
     function openUrls(urls) {
-        urls.forEach(url => window.open(url, '_blank'));
+        urls.forEach(url => {
+            window.open(url, '_blank');
+        });
     }
+
+    // --- Search History Logic ---
+    const historyToggle = document.getElementById('historyToggle');
+    const historyDropdown = document.getElementById('historyDropdown');
+    const historyItemsContainer = document.getElementById('historyItems');
+    const queryInput = document.getElementById('query');
+
+    function getHistory() {
+        return JSON.parse(localStorage.getItem('whisky_search_history')) || [];
+    }
+
+    function saveSearch(term) {
+        if (!term) return;
+        let history = getHistory().filter(item => item.toLowerCase() !== term.toLowerCase());
+        history.unshift(term);
+        if (history.length > 5) history = history.slice(0, 5);
+        localStorage.setItem('whisky_search_history', JSON.stringify(history));
+        renderHistory();
+    }
+
+    function renderHistory() {
+        const history = getHistory();
+        historyItemsContainer.innerHTML = '';
+        if (history.length === 0) {
+            historyItemsContainer.innerHTML = '<div class="history-item" style="color:var(--text-muted); cursor:default;">No recent searches</div>';
+            return;
+        }
+        history.forEach(term => {
+            const div = document.createElement('div');
+            div.className = 'history-item';
+            div.textContent = term;
+            div.onclick = () => {
+                queryInput.value = term;
+                historyDropdown.classList.remove('show');
+                queryInput.focus();
+            };
+            historyItemsContainer.appendChild(div);
+        });
+    }
+
+    historyToggle.onclick = (e) => {
+        e.stopPropagation();
+        historyDropdown.classList.toggle('show');
+        renderHistory();
+    };
+
+    document.getElementById('clearHistory').onclick = (e) => {
+        e.stopPropagation();
+        localStorage.removeItem('whisky_search_history');
+        renderHistory();
+    };
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.input-wrapper')) {
+            historyDropdown.classList.remove('show');
+        }
+    });
 
     // Search submit handler
     document.getElementById('searchForm').addEventListener('submit', (e) => {
         e.preventDefault();
-        const raw = document.getElementById('query').value.trim();
+        const raw = queryInput.value.trim();
         if (!raw) return;
+
+        saveSearch(raw);
 
         const query = encodeURIComponent(raw);
         const selected = getSelectedStores();
@@ -356,14 +490,12 @@
         openUrls(urls);
     });
 
-    // New Arrivals click handler
     document.getElementById('btnNewArrivals').addEventListener('click', () => {
         const selected = getSelectedStores();
         const urls = selected.map(s => s.newUrl);
         openUrls(urls);
     });
 
-    // Sales click handler
     document.getElementById('btnSales').addEventListener('click', () => {
         const selected = getSelectedStores();
         const urls = selected.map(s => s.saleUrl);
