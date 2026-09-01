@@ -2,108 +2,246 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Whisky Multi-Search</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🥃</text></svg>">
     <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --input-bg: rgba(15, 23, 42, 0.6);
+            --accent-amber: #f59e0b;
+            --accent-amber-hover: #d97706;
+            --accent-blue: #3b82f6;
+            --accent-blue-hover: #2563eb;
+            --accent-emerald: #10b981;
+            --accent-emerald-hover: #059669;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
         body {
-            font-family: system-ui, -apple-system, sans-serif;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
-            background-color: #121212;
-            color: #ffffff;
-            overflow: hidden;
+            background-color: var(--bg-color);
+            background-image:
+                radial-gradient(at 0% 0%, rgba(245, 158, 11, 0.08) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(59, 130, 246, 0.08) 0px, transparent 50%);
+            color: var(--text-main);
         }
+
         .container {
-            background: #1e1e1e;
-            padding: 1.5rem;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-            width: 440px;
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--card-border);
+            padding: 2rem;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            width: 100%;
+            max-width: 460px;
             box-sizing: border-box;
         }
-        h2 { text-align: center; margin: 0 0 15px 0; font-size: 22px; }
+
+        h2 {
+            text-align: center;
+            margin: 0 0 1.5rem 0;
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+            background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
         .input-group {
             display: flex;
             gap: 10px;
-            justify-content: center;
-            margin-bottom: 12px;
+            margin-bottom: 1rem;
         }
+
         input[type="text"] {
-            padding: 10px 14px;
-            font-size: 15px;
+            padding: 12px 16px;
+            font-size: 0.95rem;
             flex-grow: 1;
-            border: 1px solid #444;
-            border-radius: 6px;
-            background: #2a2a2a;
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            background: var(--input-bg);
             color: #fff;
+            outline: none;
+            transition: all 0.2s ease;
         }
+
+        input[type="text"]:focus {
+            border-color: var(--accent-amber);
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+        }
+
         button {
-            padding: 10px 16px;
-            font-size: 14px;
+            padding: 12px 18px;
+            font-size: 0.9rem;
             border: none;
-            border-radius: 6px;
+            border-radius: 10px;
             cursor: pointer;
-            font-weight: bold;
-            transition: opacity 0.2s;
+            font-weight: 600;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
-        button:hover { opacity: 0.9; }
-        
-        .btn-search { background: #d97706; color: white; }
-        
+
+        button:hover {
+            transform: translateY(-1px);
+            filter: brightness(110%);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .btn-search {
+            background: var(--accent-amber);
+            color: #000;
+            font-weight: 700;
+        }
+
         .button-row {
             display: flex;
             gap: 10px;
-            margin-bottom: 5px;
+            margin-bottom: 1.25rem;
         }
+
         .btn-action {
             flex: 1;
-            padding: 10px 8px;
-            font-size: 13px;
+            padding: 10px 12px;
+            font-size: 0.85rem;
         }
-        .btn-new { background: #2563eb; color: white; }
-        .btn-sale { background: #059669; color: white; }
 
-        .divider { margin: 15px 0; border-top: 1px solid #333; }
-        
-        .site-list {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            max-height: 1000px;
-            overflow-y: auto;
-            background: #161616;
-            padding: 10px;
-            border-radius: 6px;
-            border: 1px solid #333;
+        .btn-new {
+            background: rgba(59, 130, 246, 0.15);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.3);
         }
-        .site-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 13px;
-            cursor: pointer;
+        .btn-new:hover { background: rgba(59, 130, 246, 0.25); }
+
+        .btn-sale {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.3);
         }
-        .site-item input { cursor: pointer; }
+        .btn-sale:hover { background: rgba(16, 185, 129, 0.25); }
+
+        .divider {
+            margin: 1.25rem 0;
+            border-top: 1px solid var(--card-border);
+        }
+
         .controls {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 8px;
-            font-size: 12px;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
         }
-        .controls span { color: #3b82f6; cursor: pointer; }
-        .controls span:hover { text-decoration: underline; }
+
+        .controls-actions span {
+            color: var(--accent-blue);
+            cursor: pointer;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .controls-actions span:hover {
+            color: #93c5fd;
+        }
+
+        .site-list {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            max-height: 1000px;
+            overflow-y: auto;
+            background: var(--input-bg);
+            padding: 8px;
+            border-radius: 12px;
+            border: 1px solid var(--card-border);
+        }
+
+        /* Custom Scrollbar */
+        .site-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        .site-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .site-list::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+        .site-list::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .site-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.875rem;
+            padding: 4px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.15s ease;
+            user-select: none;
+        }
+
+        .site-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .site-item input[type="checkbox"] {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            outline: none;
+            background: transparent;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+
+        .site-item input[type="checkbox"]:checked {
+            background-color: var(--accent-amber);
+            border-color: var(--accent-amber);
+        }
+
+        .site-item input[type="checkbox"]:checked::after {
+            content: '✓';
+            position: absolute;
+            color: #000;
+            font-size: 11px;
+            font-weight: bold;
+            top: -1px;
+            left: 3px;
+        }
 
         .warning {
-            margin-top: 12px;
-            font-size: 11px;
-            color: #f59e0b;
-            background: #2b2111;
-            padding: 8px;
-            border-radius: 6px;
+            margin-top: 1.25rem;
+            font-size: 0.75rem;
+            color: #fbbf24;
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+            padding: 10px;
+            border-radius: 8px;
             text-align: center;
+            line-height: 1.4;
         }
     </style>
 </head>
@@ -111,7 +249,7 @@
 
 <div class="container">
     <h2>Whisky Multi-Search</h2>
-    
+
     <form id="searchForm">
         <div class="input-group">
             <input type="text" id="query" placeholder="e.g. Uigeadail" autofocus>
@@ -127,16 +265,16 @@
     <div class="divider"></div>
 
     <div class="controls">
-        <strong>Select Stores:</strong>
-        <div>
-            <span id="selectAll">All</span> | <span id="selectNone">None</span>
+        <strong style="color: var(--text-main);">Select Stores</strong>
+        <div class="controls-actions">
+            <span id="selectAll">Select All</span> &bull; <span id="selectNone">Clear</span>
         </div>
     </div>
 
     <div class="site-list" id="siteList"></div>
 
     <div class="warning">
-        ⚠️ Choices auto-save to browser. Make sure browser pop-ups are allowed!
+        ⚠️ Choices auto-save to browser. Ensure pop-ups are allowed for multiple tabs!
     </div>
 </div>
 
@@ -163,12 +301,12 @@
     const container = document.getElementById('siteList');
     STORES.forEach(store => {
         const isChecked = savedPrefs[store.id] !== undefined ? savedPrefs[store.id] : true;
-        
+
         const label = document.createElement('label');
         label.className = 'site-item';
         label.innerHTML = `
             <input type="checkbox" data-id="${store.id}" ${isChecked ? 'checked' : ''}>
-            ${store.name}
+            <span>${store.name}</span>
         `;
         container.appendChild(label);
     });
@@ -207,7 +345,7 @@
         e.preventDefault();
         const raw = document.getElementById('query').value.trim();
         if (!raw) return;
-        
+
         const query = encodeURIComponent(raw);
         const selected = getSelectedStores();
 
