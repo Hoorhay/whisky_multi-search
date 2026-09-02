@@ -92,11 +92,10 @@
         }
 
         .bracket-text {
-            color: #b28b29; 
+            color: #b28b29;
         }
 
-
-	.history-btn {
+        .history-btn {
             position: absolute;
             right: 8px;
             background: none;
@@ -271,13 +270,25 @@
             font-size: 0.875rem;
             padding: 4px 10px;
             border-radius: 8px;
-            cursor: pointer;
-            transition: background 0.15s ease;
+            cursor: grab;
+            transition: background 0.15s ease, opacity 0.15s ease;
             user-select: none;
         }
 
         .site-item:hover {
             background: rgba(255, 255, 255, 0.05);
+        }
+
+        .site-item.dragging {
+            opacity: 0.4;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .drag-handle {
+            color: var(--text-muted);
+            cursor: grab;
+            font-size: 0.85rem;
+            line-height: 1;
         }
 
         .site-item input[type="checkbox"] {
@@ -292,6 +303,7 @@
             cursor: pointer;
             position: relative;
             transition: all 0.2s ease;
+            flex-shrink: 0;
         }
 
         .site-item input[type="checkbox"]:checked {
@@ -414,44 +426,115 @@
         { id: "svetnapojov", name: "Svet Nápojov", search: "https://www.svetnapojov.sk/vyhladavanie?search=", newUrl: "https://www.svetnapojov.sk/whisky-c21?f=types%5B%5D%3Dnew", saleUrl: "https://www.svetnapojov.sk/whisky-c21?f=types%5B%5D%3Daction" },
     ];
 
-    // Load saved store preferences
-    const savedPrefs = JSON.parse(localStorage.getItem('whisky_store_prefs')) || {};
-
     const container = document.getElementById('siteList');
-    STORES.forEach(store => {
-    const isChecked = savedPrefs[store.id] !== undefined ? savedPrefs[store.id] : true;
 
-    // Wraps any content inside [...] with a styled span
-    const formattedName = store.name.replace(/(\[.*?\])/g, '<span class="bracket-text">$1</span>');
+    // Load saved store preferences and custom order
+    const savedPrefs = JSON.parse(localStorage.getItem('whisky_store_prefs')) || {};
+    const savedOrder = JSON.parse(localStorage.getItem('whisky_store_order')) || [];
 
-    const label = document.createElement('label');
-    label.className = 'site-item';
-    label.innerHTML = `
-        <input type="checkbox" data-id="${store.id}" ${isChecked ? 'checked' : ''}>
-        <span>${formattedName}</span>
-    `;
-    container.appendChild(label);
-});
+    // Sort STORES according to saved order
+    let sortedStores = [...STORES];
+    if (savedOrder.length > 0) {
+        sortedStores.sort((a, b) => {
+            const indexA = savedOrder.indexOf(a.id);
+            const indexB = savedOrder.indexOf(b.id);
+            if (indexA === -1) return 1;
+            if (indexB === -1) return -1;
+            return indexA - indexB;
+        });
+    }
 
-    container.addEventListener('change', () => {
+    // Render store list
+    sortedStores.forEach(store => {
+        const isChecked = savedPrefs[store.id] !== undefined ? savedPrefs[store.id] : true;
+        const formattedName = store.name.replace(/(\[.*?\])/g, '<span class="bracket-text">$1</span>');
+
+        const div = document.createElement('div');
+        div.className = 'site-item';
+        div.setAttribute('draggable', 'true');
+        div.setAttribute('data-id', store.id);
+
+        div.innerHTML = `
+            <span class="drag-handle">⁝⁝</span>
+            <input type="checkbox" id="cb_${store.id}" data-id="${store.id}" ${isChecked ? 'checked' : ''}>
+            <label for="cb_${store.id}" style="cursor: pointer; flex-grow: 1;">${formattedName}</label>
+        `;
+        container.appendChild(div);
+    });
+
+    // Save active checkbox preferences and current store order
+    function saveState() {
         const prefs = {};
-        document.querySelectorAll('#siteList input').forEach(cb => {
+        const order = [];
+        document.querySelectorAll('#siteList .site-item').forEach(item => {
+            const cb = item.querySelector('input[type="checkbox"]');
             prefs[cb.dataset.id] = cb.checked;
+            order.push(cb.dataset.id);
         });
         localStorage.setItem('whisky_store_prefs', JSON.stringify(prefs));
+        localStorage.setItem('whisky_store_order', JSON.stringify(order));
+    }
+
+    container.addEventListener('change', saveState);
+
+    // --- Drag and Drop Logic ---
+    let draggedItem = null;
+
+    container.addEventListener('dragstart', (e) => {
+        const item = e.target.closest('.site-item');
+        if (!item) return;
+        draggedItem = item;
+        item.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
     });
+
+    container.addEventListener('dragend', (e) => {
+        const item = e.target.closest('.site-item');
+        if (item) item.classList.remove('dragging');
+        draggedItem = null;
+        saveState();
+    });
+
+    container.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        const afterElement = getDragAfterElement(container, e.clientY);
+        if (draggedItem) {
+            if (afterElement == null) {
+                container.appendChild(draggedItem);
+            } else {
+                container.insertBefore(draggedItem, afterElement);
+            }
+        }
+    });
+
+    function getDragAfterElement(container, y) {
+        const draggableElements = [...container.querySelectorAll('.site-item:not(.dragging)')];
+        return draggableElements.reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = y - box.top - box.height / 2;
+            if (offset < 0 && offset > closest.offset) {
+                return { offset: offset, element: child };
+            } else {
+                return closest;
+            }
+        }, { offset: Number.NEGATIVE_INFINITY }).element;
+    }
 
     document.getElementById('selectAll').onclick = () => setAllCheckboxes(true);
     document.getElementById('selectNone').onclick = () => setAllCheckboxes(false);
 
     function setAllCheckboxes(state) {
         document.querySelectorAll('#siteList input').forEach(cb => cb.checked = state);
-        container.dispatchEvent(new Event('change'));
+        saveState();
     }
 
     function getSelectedStores() {
-        const checkedIds = Array.from(document.querySelectorAll('#siteList input:checked')).map(cb => cb.dataset.id);
-        return STORES.filter(s => checkedIds.includes(s.id));
+        const checkedItems = Array.from(document.querySelectorAll('#siteList .site-item')).filter(item => {
+            return item.querySelector('input[type="checkbox"]').checked;
+        });
+        const checkedIds = checkedItems.map(item => item.getAttribute('data-id'));
+        return checkedIds.map(id => STORES.find(s => s.id === id)).filter(Boolean);
     }
 
     function openUrls(urls) {
