@@ -123,10 +123,11 @@
       <!-- Store List -->
       <div id="siteList" class="max-h-150 overflow-y-auto bg-zinc-950/60 p-2 rounded-xl border border-zinc-800/80 custom-scrollbar"></div>
 
-      <!-- Warning -->
-      <div class="mt-4 p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs text-center font-medium leading-relaxed">
-        ⚠️ Make sure pop-ups are allowed for multiple tabs!
-      </div>
+       <!-- Warning -->
+       <div id="popupWarning" class="mt-4 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-medium leading-relaxed flex items-center justify-between gap-2">
+         <span>⚠️ Make sure pop-ups are allowed for multiple tabs!</span>
+         <button type="button" id="dismissWarning" class="text-amber-400 hover:text-amber-200 text-base leading-none p-1 cursor-pointer font-bold select-none transition-colors" aria-label="Dismiss warning">&times;</button>
+       </div>
 
       <!-- Footer -->
       <div class="mt-4 flex justify-center">
@@ -196,6 +197,19 @@
         <label for="cb_${store.id}" class="cursor-pointer flex-1 font-medium text-xs sm:text-sm">${formattedName}</label>
       `;
       container.appendChild(div);
+    });
+
+     // Dismiss Warning Handler
+    const popupWarning = document.getElementById('popupWarning');
+    const dismissBtn = document.getElementById('dismissWarning');
+
+    if (localStorage.getItem('whisky_warning_dismissed') === 'true') {
+      popupWarning.classList.add('hidden');
+    }
+
+    dismissBtn.addEventListener('click', () => {
+      popupWarning.classList.add('hidden');
+      localStorage.setItem('whisky_warning_dismissed', 'true');
     });
 
     // Save active checkbox preferences and current store order
